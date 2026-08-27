@@ -1,16 +1,18 @@
 module.exports = function requireRole(...allowedRoles) {
   return (req, res, next) => {
-    const role = req.user?.role;
+    const userRole = req.user?.role;
 
-    if (!role) {
-      return res.status(401).json({ error: "No role in token" });
+    if (!userRole) {
+      return res.status(401).json({
+        error: "Acceso no autorizado: No se encontró el rol de usuario",
+      });
     }
 
-    if (!allowedRoles.includes(role)) {
+    if (!allowedRoles.includes(userRole)) {
       return res.status(403).json({
-        error: "Forbidden: insufficient role",
-        allowed: allowedRoles,
-        provided: role
+        error: "Acceso denegado: No tienes permisos suficientes para realizar esta acción",
+        rolesPermitidos: allowedRoles,
+        rolActual: userRole,
       });
     }
 

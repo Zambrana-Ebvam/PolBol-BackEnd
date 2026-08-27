@@ -1,8 +1,10 @@
 const router = require("express").Router();
-const auth = require("../middlewares/authMiddleware");
+const authController = require("../controllers/auth.controller");
+const authMiddleware = require("../middlewares/authMiddleware");
 
-router.get("/me", auth, async (req, res) => {
-  res.json(req.user);
-});
+// Perfil de usuario autenticado
+router.get("/me", authMiddleware, authController.getMe);
+router.put("/me", authMiddleware, authController.updateMe);
+router.delete("/me", authMiddleware, authController.deleteMe);
 
 module.exports = router;

@@ -3,23 +3,36 @@ const User = require("../models/User");
 
 module.exports = async function authMiddleware(req, res, next) {
   try {
-    const header = req.headers.authorization || "";
-    const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
     if (!token) {
-      return res.status(401).json({ error: "No token (Bearer) provided" });
+      return res.status(401).json({
+        error: "Acceso no autorizado: Token no proporcionado",
+      });
     }
 
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      console.error("❌ JWT_SECRET no configurada en .env");
+      return res.status(500).json({ error: "Error de configuración en el servidor" });
+    }
+
+    const payload = jwt.verify(token, jwtSecret);
 
     const user = await User.findById(payload.id).select("-passwordHash");
     if (!user) {
-      return res.status(401).json({ error: "User not found" });
+      return res.status(401).json({
+        error: "Acceso denegado: El usuario ya no existe o fue eliminado",
+      });
     }
 
-    req.user = user; // 👈 aquí vive el rol
+    req.user = user;
     next();
-  } catch (e) {
-    return res.status(401).json({ error: "Invalid token" });
+  } catch (err) {
+    if (err.name === "TokenExpiredError") {
+      return res.status(401).json({ error: "Sesión expirada. Inicie sesión nuevamente." });
+    }
+    return res.status(401).json({ error: "Token inválido o corrupto" });
   }
 };
